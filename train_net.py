@@ -45,6 +45,9 @@ from projects.DeepLab.deeplab.config import add_deeplab_config
 from detectron2.solver import build_lr_scheduler
 from detectron2.solver.build import maybe_add_gradient_clipping
 from detectron2.utils.logger import setup_logger
+from detectron2.data.datasets import register_coco_instances
+from detectron2.data.catalog import DatasetCatalog
+import sys
 
 # FastInst
 from fastinst import (
@@ -288,9 +291,31 @@ def setup(args):
     setup_logger(output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="fastinst")
     return cfg
 
+def register_datasets(labelme_folder: str):
+    """
+    Registers COCO datasets from the given LabelMe folder.
+
+    Args:
+        labelme_folder (str): The path to the LabelMe folder containing datasets.
+    """
+    # Paths to JSON annotation files
+    train_json_file = os.path.join(labelme_folder, 'train_data', 'train_dataset.json')
+    val_json_file = os.path.join(labelme_folder, 'validation_data', 'validation_dataset.json')
+    
+    # Paths to image directories
+    image_root = labelme_folder  # Assuming images are located directly under the LabelMe folder
+    
+    # Register training and validation datasets
+    register_coco_instances("TestCase_train", {}, train_json_file, os.path.join(image_root, 'train_data', 'images'))
+    register_coco_instances("TestCase_validation", {}, val_json_file, os.path.join(image_root, 'validation_data', 'images'))
+
+    print("Datasets registered: 'TestCase_train' and 'TestCase_validation' ")
 
 def main(args):
     cfg = setup(args)
+
+    labelme_folder = os.path.join('/home', 'raviakash', 'codebase', 'TestCase')
+    register_datasets(labelme_folder)
 
     if args.eval_only:
         model = Trainer.build_model(cfg)
